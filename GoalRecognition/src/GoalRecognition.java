@@ -1,9 +1,8 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
-
-import org.apache.commons.collections4.CollectionUtils;
+import java.util.Map.Entry;
 
 import com.hstairs.ppmajal.conditions.ComplexCondition;
 import com.hstairs.ppmajal.conditions.Predicate;
@@ -20,8 +19,8 @@ public class GoalRecognition {
 	}
 
 	public static HashMap<ComplexCondition, HashSet<Predicate>> computeAchievedLandmarksInObservations(
-			HashSet<Predicate> init, HashSet<ComplexCondition> candidateGoals, ArrayList<GroundAction> observations,
-			HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs) {
+			HashSet<Predicate> initialState, HashSet<ComplexCondition> candidateGoals,
+			ArrayList<GroundAction> observations, HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs) {
 
 		HashMap<ComplexCondition, HashSet<Predicate>> goalsPlusAchievedLMs = new HashMap<ComplexCondition, HashSet<Predicate>>();
 
@@ -29,7 +28,7 @@ public class GoalRecognition {
 		for (ComplexCondition goal : candidateGoals) {
 
 			LGG LG = candidateGoalsPlusLMs.get(goal);
-			HashSet<Predicate> LI = (HashSet<Predicate>) init.clone();
+			HashSet<Predicate> LI = (HashSet<Predicate>) initialState.clone();
 			LI.retainAll(LG.getPredicates());
 			HashSet<Node> L = new HashSet<Node>();
 
@@ -79,7 +78,6 @@ public class GoalRecognition {
 
 		HashSet<Predicate> SA = new HashSet<Predicate>();
 		HashSet<Predicate> UA = new HashSet<Predicate>();
-		HashSet<Predicate> ST = new HashSet<Predicate>();
 
 		HashSet<Predicate> allAddFacts = new HashSet<Predicate>();
 		HashSet<Predicate> allPreCondFacts = new HashSet<Predicate>();
@@ -117,8 +115,8 @@ public class GoalRecognition {
 				if (f_element_pre == false && a.getPreconditions().getInvolvedPredicates().contains(p)) {
 					f_element_pre = true;
 				}
-				
-				//prepare ST facts
+
+				// prepare ST facts
 				if (prep_ST_facts == false) {
 
 					allAddFacts.addAll(add);
@@ -128,7 +126,7 @@ public class GoalRecognition {
 				}
 
 			}
-			
+
 			prep_ST_facts = true;
 
 			if (f_notElement_eff && f_element_pre) {
@@ -160,20 +158,177 @@ public class GoalRecognition {
 				}
 			}
 
-			if (!CollectionUtils.disjunction(f_element_pre, f_element_del).isEmpty()) {
-				UA_Facts.add(p);
+			boolean foundActions = false;
+
+			for (GroundAction pre : f_element_pre) {
+				for (GroundAction del : f_element_del) {
+
+					if (pre != del) {
+						UA_Facts.add(p);
+						foundActions = true;
+						break;
+					}
+				}
+
+				if (foundActions) {
+					break;
+				}
 			}
+		}
+
+		// find Strictly Terminal
+		//TODO works like this? KEK
+		allAddFacts.removeAll(allDelFacts);
+		allAddFacts.removeAll(allPreCondFacts);
+
+
+		if (!allAddFacts.isEmpty()) {
+			ST_Facts.addAll(allAddFacts);
+		}
+
+		System.out.println("--------------------");
+		System.out.println("Fact Partitioning:");
+		System.out.println("Strictly Activating Facts: "+SA_Facts.size());
+		System.out.println("Unstable Activating Facts: "+UA_Facts.size());
+		System.out.println("Strictly Terminal Facts: "+ST_Facts.size());
+		System.out.println("--------------------");
+
+
+	}
+
+	public static HashMap<Integer, HashSet<Predicate>> partitionFactsAndGoals(LGG lgg) {
+
+		HashMap<Integer, HashSet<Predicate>> factPartitioning = new HashMap<Integer, HashSet<Predicate>>();
+
+		HashSet<Predicate> SA_tmp = (HashSet<Predicate>) SA_Facts.clone();
+		HashSet<Predicate> UA_tmp = (HashSet<Predicate>) UA_Facts.clone();
+		HashSet<Predicate> ST_tmp = (HashSet<Predicate>) ST_Facts.clone();
+
+		SA_tmp.retainAll(lgg.getPredicates());
+		UA_tmp.retainAll(lgg.getPredicates());
+		ST_tmp.retainAll(lgg.getPredicates());
+
+		factPartitioning.put(1, SA_tmp);
+		factPartitioning.put(2, UA_tmp);
+		factPartitioning.put(3, ST_tmp);
+
+		return factPartitioning;
+	}
+
+	// Assume LMs for candidate goals are already given -> candidateGoalsPlusLMs
+	public static HashMap<ComplexCondition, Double> filterCandidateGoalsInObservations(HashSet<Predicate> initialState,
+			HashSet<ComplexCondition> candidateGoals, ArrayList<GroundAction> observations,
+			HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs, double threshold, HashSet<GroundAction> actions) {
+
+		partitionFacts(actions, initialState);
+
+		HashMap<ComplexCondition, Double> goalAndAchievedLMsPercentage = new HashMap<ComplexCondition, Double>();
+
+		for (Entry<ComplexCondition, LGG> entry : candidateGoalsPlusLMs.entrySet()) {
+
+			HashMap<Integer, HashSet<Predicate>> factPartitioning = partitionFactsAndGoals(entry.getValue());
+
+			HashSet<Predicate> SA_tmp = factPartitioning.get(1);
+			HashSet<Predicate> UA_tmp = factPartitioning.get(2);
+			HashSet<Predicate> ST_tmp = factPartitioning.get(3);
+
+			SA_tmp.retainAll(initialState);
+
+			// Goal is no longer possible
+			if (SA_tmp.isEmpty()) {
+				continue;
+			}
+
+			initialState.retainAll(entry.getValue().getPredicates());
+
+			// LMs already present in initial State
+			HashSet<Predicate> initialLMs = initialState;
+
+			HashSet<Predicate> achievedLMs = new HashSet<Predicate>();
+
+			boolean discardG = false;
+
+			for (GroundAction oA : observations) {
+
+				HashSet<Predicate> UAplusST = new HashSet<Predicate>();
+				UAplusST.addAll(UA_tmp);
+				UAplusST.addAll(ST_tmp);
+
+				HashSet<Predicate> PrePlusEff = new HashSet<Predicate>();
+				HashSet<Predicate> PrePlusAdd = new HashSet<Predicate>();
+
+				PrePlusEff.addAll(oA.getPreconditions().getInvolvedPredicates());
+				PrePlusEff.addAll(oA.getAddList().getInvolvedPredicates());
+				PrePlusEff.addAll(oA.getDelList().getInvolvedPredicates());
+				PrePlusAdd.addAll(oA.getPreconditions().getInvolvedPredicates());
+				PrePlusAdd.addAll(oA.getAddList().getInvolvedPredicates());
+
+				if (Collections.disjoint(UAplusST, PrePlusEff) == false) {
+
+					discardG = true;
+					break;
+
+				} else {
+
+					
+					//TODO
+					// Line 16 missing, L ???
+					HashSet<Predicate> L = new HashSet<Predicate>();
+					HashSet<Node> L_Nodes = new HashSet<Node>();
+
+					for (Node n : entry.getValue().getNodes()) {
+
+						if (PrePlusAdd.contains(n.getNode())) {
+							L_Nodes.add(n);
+						}
+
+					}
+
+					for (Node n : L_Nodes) {
+
+						L.add(n.getNode());
+						L.addAll(entry.getValue().getAllPredecessors(n));
+
+					}
+
+					achievedLMs.addAll(L);
+					achievedLMs.addAll(initialLMs);
+
+				}
+
+			}
+
+			if (discardG) {
+				// TODO
+				// break hier richtig? eher continue
+				break;
+			}
+
+			double percentageOfAchievedLMs = achievedLMs.size() / (((LGG) entry.getValue()).getPredicates()).size();
+
+			goalAndAchievedLMsPercentage.put((ComplexCondition) entry.getKey(), percentageOfAchievedLMs);
 
 		}
 
-		// find Strictly Terminal		
-		actions.removeAll(allDelFacts);
-		actions.removeAll(allPreCondFacts);
-		allAddFacts.retainAll(actions);
+		double maxPercentage = 0;
+
+		for (Entry<ComplexCondition, Double> entry : goalAndAchievedLMsPercentage.entrySet()) {
+
+			if (entry.getValue() > maxPercentage) {
+				maxPercentage = entry.getValue();
+			}
+		}
+
+		HashMap<ComplexCondition, Double> result = new HashMap<ComplexCondition, Double>();
+
+		for (Entry<ComplexCondition, Double> entry : goalAndAchievedLMsPercentage.entrySet()) {
+
+			if (entry.getValue() > (maxPercentage - threshold)) {
+				result.put(entry.getKey(), entry.getValue());
+			}
+		}
 		
-		if(!allAddFacts.isEmpty()) {
-			ST_Facts.addAll(allAddFacts);
-		}		
+		return result;
 
 	}
 

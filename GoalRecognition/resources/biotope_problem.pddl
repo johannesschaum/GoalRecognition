@@ -8,9 +8,11 @@
 		lat1 lat2 lat3 lat4 lat5 lat6 lat7 - Latitude
 		german chinese greek italian - KitchenType
 		biotopeUser - User
+		sun - Weather
 	)
 	(:init
 		(= (cost) 0)
+		(GoodWeather sun)
 	)
 	(:goal 
 		(and (ParkingSpotReservation lon3 lat4 biotopeUser)

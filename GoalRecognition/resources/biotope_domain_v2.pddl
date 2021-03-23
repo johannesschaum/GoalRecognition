@@ -9,8 +9,10 @@
 		Amount
 		Longitude
 		Latitude
+		Weather
 	)
 	(:predicates
+		(GoodWeather ?wetter - Weather)
 		(FoundCity ?whereLon - Longitude ?whereLat - Latitude)
 		(ParkingSpotReservation ?whereLon - Longitude ?whereLat - Latitude ?who - User)
 		(RestaurantReservation ?whereLon - Longitude ?whereLat - Latitude ?when - Time ?who - User ?cuisine - KitchenType ?persons - Amount)
@@ -35,8 +37,9 @@
 	)
 	
 	(:action search_City		
-		:parameters(?whereLon - Longitude ?whereLat - Latitude)
+		:parameters(?whereLon - Longitude ?whereLat - Latitude ?wetter - Weather)
 		:precondition(and
+			(GoodWeather ?wetter)
 		)
 		:effect(and
 			(FoundCity ?whereLon ?whereLat)

@@ -45,16 +45,16 @@ public class LandmarkExtraction {
 		problem.transformGoal();
 		problem.groundingActionProcessesConstraints();
 
-		System.out.println("Simplification..");
+//		System.out.println("Simplification..");
 		// problem.setAction_cost_from_metric(!ignore_metric);
 		problem.simplifyAndSetupInit(true, false);
 
-		System.out.println("Grounding and Simplification finished");
-		System.out.println("|A|:" + problem.getActions().size());
-		System.out.println("|P|:" + problem.getProcessesSet().size());
-		System.out.println("|E|:" + problem.getEventsSet().size());
-		System.out.println("Size(X):" + problem.getNumberOfNumericVariables());
-		System.out.println("Size(F):" + problem.getNumberOfBooleanVariables());
+//		System.out.println("Grounding and Simplification finished");
+//		System.out.println("|A|:" + problem.getActions().size());
+//		System.out.println("|P|:" + problem.getProcessesSet().size());
+//		System.out.println("|E|:" + problem.getEventsSet().size());
+//		System.out.println("Size(X):" + problem.getNumberOfNumericVariables());
+//		System.out.println("Size(F):" + problem.getNumberOfBooleanVariables());
 
 		rpg = new RPG((PDDLState) problem.getInit());
 
@@ -68,21 +68,21 @@ public class LandmarkExtraction {
 
 		generatePredicateSet();
 
-		System.out.println("Predicates: " + predicates);
+//		System.out.println("Predicates: " + predicates);
 
 		generateLandmarkCandidates();
 
-		System.out.println("LANDMARK CANDIDATES: ");
-		System.out.println(landmarkCandidates);
-
-		System.out.println("------------------------------------------");
+//		System.out.println("LANDMARK CANDIDATES: ");
+//		System.out.println(landmarkCandidates);
+//
+//		System.out.println("------------------------------------------");
 		evaluateCandidates();
 
-		System.out.println("LANDMARKS: ");
-		System.out.println(landmarks);
-
-		System.out.println("LGG: ");
-		System.out.println(lgg.nodes);
+//		System.out.println("LANDMARKS: ");
+//		System.out.println(landmarks);
+//
+//		System.out.println("LGG: ");
+//		System.out.println(lgg.nodes);
 
 		return lgg;
 
@@ -118,7 +118,6 @@ public class LandmarkExtraction {
 		System.out.println("Size(X):" + le1.problem.getNumberOfNumericVariables());
 		System.out.println("Size(F):" + le1.problem.getNumberOfBooleanVariables());
 
-		
 		le1.rpg = new RPG((PDDLState) le1.problem.getInit());
 
 		le1.lgg = new LGG();
@@ -130,7 +129,6 @@ public class LandmarkExtraction {
 		le1.levels = le1.rpg.levels;
 
 		le1.generatePredicateSet();
-		
 
 		System.out.println("Predicates: " + le1.predicates);
 
@@ -184,20 +182,51 @@ public class LandmarkExtraction {
 		candidateGoalsPlusLMs.put(le2.problem.getGoals(), le2.lgg);
 		candidateGoalsPlusLMs.put(le3.problem.getGoals(), le3.lgg);
 
-		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMS = GoalRecognition
-				.computeAchievedLandmarksInObservations(new HashSet<Predicate>(), candidateGoals, observations,
-						candidateGoalsPlusLMs);
-
-		System.out.println("ACHIEVED LANDMARKS IN OBSERVATIONS");
-		for (Entry c : achievedLMS.entrySet()) {
-
-			System.out.println("-------------------------------------------------------");
-			System.out.println("GOAL: " + c.getKey());
-			System.out.println();
-			System.out.println("ACHIEVED LMs: " + c.getValue());
-
+		
+		// Testing achieved LMs
+		
+//		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMS = GoalRecognition
+//				.computeAchievedLandmarksInObservations(new HashSet<Predicate>(), candidateGoals, observations,
+//						candidateGoalsPlusLMs);
+//
+//
+//		System.out.println("ACHIEVED LANDMARKS IN OBSERVATIONS");
+//		for (Entry c : achievedLMS.entrySet()) {
+//
+//			System.out.println("-------------------------------------------------------");
+//			System.out.println("GOAL: " + c.getKey());
+//			System.out.println();
+//			System.out.println("ACHIEVED LMs: " + c.getValue());
+//
+//		}
+		
+		
+		// Testing Candidate Goal Filtering
+		
+		HashSet<Predicate> initialPredicates = new HashSet<Predicate>();
+		
+		
+		for(Predicate p : le1.problem.getPredicatesInvolvedInInit()) {
+			
+			initialPredicates.add(p);
+			
+			
 		}
-		// System.out.println(achievedLMS);
+		
+		System.out.println("INITIAL PREDICATES: "+initialPredicates);
+		System.out.println(le1.problem.getPredicatesInvolvedInInit());
+		
+		
+
+		HashMap<ComplexCondition, Double> candidateGoalsFiltered = GoalRecognition.filterCandidateGoalsInObservations(
+				initialPredicates, candidateGoals, observations, candidateGoalsPlusLMs, 1.0,
+				(HashSet<GroundAction>) le1.problem.getActions());
+		
+		
+		System.out.println("....................................................................");
+		
+		System.out.println("FILTERED CANDIDATE GOALS:");
+		System.out.println(candidateGoalsFiltered);
 
 	}
 
@@ -266,7 +295,7 @@ public class LandmarkExtraction {
 
 							if (!lgg.containsNode(p)) {
 
-								System.out.println("Adding node");
+//								System.out.println("Adding node");
 
 								lgg.addNode(p);
 								lgg.addEdge(p, entryP.getValue());
@@ -275,7 +304,7 @@ public class LandmarkExtraction {
 
 						temp.putAll((entryP.getKey() - 1), temp2);
 
-						System.out.println("Temp:" + temp);
+//						System.out.println("Temp:" + temp);
 
 						C_dash.putAll(temp);
 						landmarkCandidates.addAll(temp.values());
