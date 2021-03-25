@@ -48,6 +48,18 @@ public class LGG {
 		}
 
 	}
+	
+	public Node getNodeFromPredicate(Predicate p) {
+		
+		for(Node n : nodes) {
+			if(n.getNode().equals(p)) {
+				return n;
+			}
+		}
+		
+		return null;
+		
+	}
 
 	public void addEdge(Predicate node, Predicate next) {
 

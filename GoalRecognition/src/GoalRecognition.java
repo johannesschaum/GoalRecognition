@@ -18,6 +18,69 @@ public class GoalRecognition {
 
 	}
 
+	public static HashMap<ComplexCondition, Double> recognizeGoals(ArrayList<GroundAction> observations,
+			String domainFile, HashSet<String> problemFiles) throws Exception {
+		// assume different Problems as candidate Goals with same initial state
+
+		HashMap<ComplexCondition, Double> recognizedGoals = new HashMap<ComplexCondition, Double>();
+
+		HashSet<ComplexCondition> candidateGoals = new HashSet<ComplexCondition>();
+		HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs = new HashMap<ComplexCondition, LGG>();
+
+		boolean initialStateSet = false;
+		HashSet<Predicate> initialState = new HashSet<Predicate>();
+
+		for (String problem : problemFiles) {
+
+			LandmarkExtraction le = new LandmarkExtraction();
+			le.computeLandmarks(domainFile, problem);
+
+			candidateGoals.add(le.problem.getGoals());
+			candidateGoalsPlusLMs.put(le.problem.getGoals(), le.lgg);
+
+			if (!initialStateSet) {
+
+				for (Predicate p : le.problem.getPredicatesInvolvedInInit()) {
+					initialState.add(p);
+				}
+				initialStateSet = true;
+			}
+
+		}
+
+		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMsInObservations = computeAchievedLandmarksInObservations(
+				initialState, candidateGoals, observations, candidateGoalsPlusLMs);
+
+		for (Entry<ComplexCondition, HashSet<Predicate>> entry : achievedLMsInObservations.entrySet()) {
+
+			LGG lgg = candidateGoalsPlusLMs.get(entry.getKey());
+
+			double sumCompletionOfSubGoals = 0;
+
+			for (Predicate subGoal : entry.getKey().getInvolvedPredicates()) {
+
+				HashSet<Predicate> LMsOfSubGoal = lgg.getAllPredecessors(lgg.getNodeFromPredicate(subGoal));
+
+				double denominator = LMsOfSubGoal.size();
+
+				LMsOfSubGoal.retainAll(entry.getValue());
+
+				double numerator = LMsOfSubGoal.size();
+
+				sumCompletionOfSubGoals += (numerator / denominator);
+
+			}
+
+			double h_gc = sumCompletionOfSubGoals / entry.getKey().getInvolvedPredicates().size();
+
+			recognizedGoals.put(entry.getKey(), h_gc);
+
+		}
+
+		return recognizedGoals;
+
+	}
+
 	public static HashMap<ComplexCondition, HashSet<Predicate>> computeAchievedLandmarksInObservations(
 			HashSet<Predicate> initialState, HashSet<ComplexCondition> candidateGoals,
 			ArrayList<GroundAction> observations, HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs) {
@@ -177,10 +240,9 @@ public class GoalRecognition {
 		}
 
 		// find Strictly Terminal
-		//TODO works like this? KEK
+		// TODO works like this? KEK
 		allAddFacts.removeAll(allDelFacts);
 		allAddFacts.removeAll(allPreCondFacts);
-
 
 		if (!allAddFacts.isEmpty()) {
 			ST_Facts.addAll(allAddFacts);
@@ -188,11 +250,10 @@ public class GoalRecognition {
 
 		System.out.println("--------------------");
 		System.out.println("Fact Partitioning:");
-		System.out.println("Strictly Activating Facts: "+SA_Facts.size());
-		System.out.println("Unstable Activating Facts: "+UA_Facts.size());
-		System.out.println("Strictly Terminal Facts: "+ST_Facts.size());
+		System.out.println("Strictly Activating Facts: " + SA_Facts.size());
+		System.out.println("Unstable Activating Facts: " + UA_Facts.size());
+		System.out.println("Strictly Terminal Facts: " + ST_Facts.size());
 		System.out.println("--------------------");
-
 
 	}
 
@@ -270,28 +331,28 @@ public class GoalRecognition {
 
 				} else {
 
-					
-					//TODO
-					// Line 16 missing, L ???
-					HashSet<Predicate> L = new HashSet<Predicate>();
-					HashSet<Node> L_Nodes = new HashSet<Node>();
+					HashSet<Predicate> L = (HashSet<Predicate>) entry.getValue().getPredicates().clone();
 
-					for (Node n : entry.getValue().getNodes()) {
+					L.removeAll(oA.getDelList().getInvolvedPredicates());
 
-						if (PrePlusAdd.contains(n.getNode())) {
-							L_Nodes.add(n);
+					for (Predicate p : entry.getValue().getPredicates()) {
+
+						if (PrePlusAdd.contains(p)) {
+							L.add(p);
 						}
 
 					}
 
-					for (Node n : L_Nodes) {
+					HashSet<Predicate> L_pred = new HashSet<Predicate>();
 
-						L.add(n.getNode());
-						L.addAll(entry.getValue().getAllPredecessors(n));
+					for (Predicate p : L) {
+
+						L_pred.addAll(entry.getValue().getAllPredecessors(entry.getValue().getNodeFromPredicate(p)));
 
 					}
 
 					achievedLMs.addAll(L);
+					achievedLMs.addAll(L_pred);
 					achievedLMs.addAll(initialLMs);
 
 				}
@@ -327,7 +388,7 @@ public class GoalRecognition {
 				result.put(entry.getKey(), entry.getValue());
 			}
 		}
-		
+
 		return result;
 
 	}
