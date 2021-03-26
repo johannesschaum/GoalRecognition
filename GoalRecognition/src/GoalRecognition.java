@@ -41,6 +41,7 @@ public class GoalRecognition {
 			if (!initialStateSet) {
 
 				for (Predicate p : le.problem.getPredicatesInvolvedInInit()) {
+					System.out.println("ADDING TO INITIAL STATE................................"+p);
 					initialState.add(p);
 				}
 				initialStateSet = true;
@@ -50,6 +51,13 @@ public class GoalRecognition {
 
 		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMsInObservations = computeAchievedLandmarksInObservations(
 				initialState, candidateGoals, observations, candidateGoalsPlusLMs);
+		
+		System.out.println("Achieved Landmarks in Observations:");
+		for(Entry<ComplexCondition, HashSet<Predicate>> e : achievedLMsInObservations.entrySet()) {
+			
+			System.out.println("Goal: "+e.getKey());
+			System.out.println("Achieved LMs: "+e.getValue());
+		}
 
 		for (Entry<ComplexCondition, HashSet<Predicate>> entry : achievedLMsInObservations.entrySet()) {
 
@@ -61,16 +69,21 @@ public class GoalRecognition {
 
 				HashSet<Predicate> LMsOfSubGoal = lgg.getAllPredecessors(lgg.getNodeFromPredicate(subGoal));
 
-				double denominator = LMsOfSubGoal.size();
+				double denominator = LMsOfSubGoal.size()+1;
 
 				LMsOfSubGoal.retainAll(entry.getValue());
 
 				double numerator = LMsOfSubGoal.size();
 
 				sumCompletionOfSubGoals += (numerator / denominator);
+				System.out.println(numerator +" out of "+denominator+"-------------------------");
 
 			}
 
+			System.out.println("Sum Completion of Subgoal: "+ sumCompletionOfSubGoals);
+			System.out.println("Number of Subgoals: "+entry.getKey().getInvolvedPredicates().size());
+			
+			
 			double h_gc = sumCompletionOfSubGoals / entry.getKey().getInvolvedPredicates().size();
 
 			recognizedGoals.put(entry.getKey(), h_gc);
@@ -99,6 +112,7 @@ public class GoalRecognition {
 
 			// for each observed action o in O do
 			for (GroundAction observation : observations) {
+				
 
 				HashSet<Predicate> prePlusAdd = new HashSet<Predicate>();
 				prePlusAdd.addAll(observation.getPreconditions().getInvolvedPredicates());

@@ -47,7 +47,7 @@ public class LandmarkExtraction {
 
 //		System.out.println("Simplification..");
 		// problem.setAction_cost_from_metric(!ignore_metric);
-		problem.simplifyAndSetupInit(true, false);
+		problem.simplifyAndSetupInit(false, false);
 
 //		System.out.println("Grounding and Simplification finished");
 //		System.out.println("|A|:" + problem.getActions().size());
@@ -96,8 +96,8 @@ public class LandmarkExtraction {
 		le1.domainFile = "./resources/biotope_domain_v2.pddl";
 		le1.problemFile = "./resources/biotope_problem.pddl";
 
-//		domainFile = "./resources/kitchen_example/FIdomain.pddl";
-//		problemFile = "./resources/kitchen_example/FIproblem.pddl";
+//		le1.domainFile = "./resources/kitchen_example/FIdomain.pddl";
+//		le1.problemFile = "./resources/kitchen_example/FIproblem.pddl";
 
 		le1.domain = new PddlDomain(le1.domainFile);
 		le1.problem = new EPddlProblem(le1.problemFile, le1.domain.getConstants(), le1.domain.types, le1.domain);
@@ -109,7 +109,7 @@ public class LandmarkExtraction {
 
 		System.out.println("Simplification..");
 		// problem.setAction_cost_from_metric(!ignore_metric);
-		le1.problem.simplifyAndSetupInit(true, false);
+		le1.problem.simplifyAndSetupInit(false, false);
 
 		System.out.println("Grounding and Simplification finished");
 		System.out.println("|A|:" + le1.problem.getActions().size());
@@ -120,6 +120,8 @@ public class LandmarkExtraction {
 
 		le1.rpg = new RPG((PDDLState) le1.problem.getInit());
 		
+		System.out.println("PREDICATES IN INIT:");
+		System.out.println(le1.problem.getPredicatesInvolvedInInit());
 	
 
 		le1.lgg = new LGG();
@@ -166,6 +168,9 @@ public class LandmarkExtraction {
 //
 		ArrayList<GroundAction> observations = new ArrayList<GroundAction>();
 		observations.addAll(le1.actions.get(0));
+		
+		System.out.println("OBSERVATIONS:");
+		System.out.println(observations);
 //
 //		HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs = new HashMap<ComplexCondition, LGG>();
 //
@@ -189,7 +194,6 @@ public class LandmarkExtraction {
 			System.out.println("GOAL COMPLETION HEURISTIC: " + e.getValue());
 			System.out.println("--------------------------");
 		}
-		
 		
 		
 		//le1.problem.getPredicatesInvolvedInInit();
@@ -337,7 +341,11 @@ public class LandmarkExtraction {
 		predicates = new ArrayListValuedHashMap<>();
 
 		Iterable<Predicate> initialPredicates = problem.getPredicatesInvolvedInInit();
+		
+		
+		
 
+		
 		for (Predicate p : initialPredicates) {
 
 			predicates.put(0, p);
