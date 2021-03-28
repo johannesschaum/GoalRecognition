@@ -6,7 +6,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="libs/PPMAJAL.jar"/>
 	<classpathentry kind="lib" path="libs/antlr-3.4-complete.jar"/>
 	<classpathentry kind="lib" path="libs/commons-cli-1.4.jar"/>
 	<classpathentry kind="lib" path="libs/commons-collections4-4.3.jar"/>
@@ -17,5 +16,6 @@
 	<classpathentry kind="lib" path="libs/ia_math.jar"/>
 	<classpathentry kind="lib" path="libs/jgrapht-bundle-1.3.0.jar"/>
 	<classpathentry kind="lib" path="libs/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="libs/PPMaJal_original.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

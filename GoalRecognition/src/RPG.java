@@ -13,8 +13,8 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 public class RPG {
 
 	public int levels;
-	public Vector action_level;
-	public Vector rel_state_level;
+	public Vector<ArrayList<GroundAction>> action_level;
+	public Vector<RelState> rel_state_level;
 	public ComplexCondition goal;
 	public boolean goal_reached;
 	public Map<Predicate, Set<Predicate>> firstAchiever;
@@ -61,6 +61,96 @@ public class RPG {
 //	        goal_reached = false;
 //	    }
 	
+	
+	public ArrayList[] computeRelaxedPlan_new (PDDLState initialState, ComplexCondition goal, Set<GroundAction> actions) throws CloneNotSupportedException {
+
+        //System.out.println("Find relaxed plan");
+        ArrayList ret = new ArrayList();
+
+        this.goal = goal;
+        RelState current = initialState.relaxState();
+        rel_state_level.add(current.clone());
+
+        //actions to be used for planning purposes. This list is a temporary collection to do not compromise the input structure
+        ArrayList<GroundAction> acts = new ArrayList<GroundAction>();
+        acts.addAll(actions);
+        
+        
+        long start = System.currentTimeMillis();
+        
+        
+        ArrayList<GroundAction> level = new ArrayList<GroundAction>();
+        levels = 0;
+        
+        
+        
+        
+        while (true) {
+        	
+        	
+        	
+            if (current.satisfy(goal)) {
+                goal_reached = true;
+                this.goal_reached_at = levels;
+                System.out.println("Goal reached at level "+levels);
+                break;//goal reached!
+                
+            } else {
+
+                level = new ArrayList();
+                for (Iterator it = acts.iterator(); it.hasNext(); ) {
+                    GroundAction gr = (GroundAction) it.next();
+                    
+                    if (gr.isApplicable(current)) {
+                        //if (gr.getPreconditions().isSatisfied(current)) {
+                        level.add(gr);
+                        if (gr.getNumericEffects() == null) {
+                            it.remove();
+                        }
+
+                    }
+                }
+                if (level.isEmpty()) {
+                    this.goal_reached = false;
+                    numberOfActions = Integer.MAX_VALUE;
+                    System.out.println("Relaxed plan computation: goal not reached");
+                    return null;//it means that the goal is unreacheable!
+                }
+                long start2 = System.currentTimeMillis();
+
+                for (Object o : level) {
+                    GroundAction gr = (GroundAction) o;
+                    //System.out.println("Applying effect of:"+gr);
+                    gr.apply(current);
+                }
+                spezzTime += System.currentTimeMillis() - start2;
+                this.action_level.add(level);
+                this.rel_state_level.add(current.clone());
+                levels++;
+                //System.out.println("Level:"+levels);
+            }
+        }
+
+        
+        this.setFixPoint(current.clone());
+        //System.out.println(current);
+        this.goal_reached = true;
+        System.out.println("Graphplan Building Time:" + (System.currentTimeMillis() - start));
+        //System.out.println("Spezz Time:" + (spezzTime));
+        //System.out.println("NumbersOfLevel" + (levels));
+        long start2 = System.currentTimeMillis();
+        ArrayList[] ret1 = extractPlan_new();
+        //System.out.println("estrazione:" + (System.currentTimeMillis() - start2));
+        cpu_time = System.currentTimeMillis() - start;
+        
+
+        //this considers also the interactions among actions. Inadmissible Heuristic
+        //this.goal_reached_at = ret1.size();
+        return ret1;
+
+    }
+	
+
 	
 	public MultiValuedMap computeRelaxedPlan(PDDLState s, ComplexCondition goal, Set actions)
 			throws CloneNotSupportedException {
@@ -246,116 +336,116 @@ public class RPG {
 	// the problem. The numeric part is also considered but there just for the
 	// purpose of identifying a
 	// the relevant set of actions
-	public Set reacheability(PDDLState s, Set actions) {
-
-		RelState current = s.relaxState();
-		Set acts = new HashSet();
-		acts.addAll(actions);
-		long start = System.currentTimeMillis();
-		LinkedHashSet level = new LinkedHashSet();
-		numberOfActions = 0;
-		levels = 0;
-		while (true) {
-			boolean newActions = false;
-			for (Iterator it = acts.iterator(); it.hasNext();) {
-				GroundAction gr = (GroundAction) it.next();
-				if (gr.getPreconditions().can_be_true(current)) {
-					newActions = true;
-					level.add(gr);
-					this.numberOfActions++;
-					it.remove();
-				}
-			}
-			// storing information about the fact that the goal has been reached. Pay
-			// attention that for the numeric case having a goal that is not reached does
-			// not imply that
-			// the task is not solvable (using this procedure).
-			if (!goal_reached && current.satisfy(goal)) {
-				goal_reached = true;
-				goal_reached_at = levels;
-				// break;
-			}
-			// System.out.println(level.size());
-			this.action_level.add(level.clone());
-			if (!newActions) {
-				break;// fixpoint reached for the propositional part. For the numeric this is not a
-						// fixpoint, and seems hard to define a fixpoint for the numeric case
-			}
-			long start2 = System.currentTimeMillis();
-			for (Object o : level) {
-				GroundAction gr = (GroundAction) o;
-				// System.out.println(gr.getName());
-				gr.apply(current);
-			}
-			spezzTime += System.currentTimeMillis() - start2;
-			levels++;
-			// System.out.println("Level:"+levels);
-		}
-		System.out.println("Total Number of Levels Developped:" + levels);
-		fixPoint = current.clone();
-		FPCTime = System.currentTimeMillis() - start;
-		relevantActions = level;
-		this.cpu_time = System.currentTimeMillis() - start;
-		return level;
-	}
+//	public Set reacheability(PDDLState s, Set actions) {
+//
+//		RelState current = s.relaxState();
+//		Set acts = new HashSet();
+//		acts.addAll(actions);
+//		long start = System.currentTimeMillis();
+//		LinkedHashSet level = new LinkedHashSet();
+//		numberOfActions = 0;
+//		levels = 0;
+//		while (true) {
+//			boolean newActions = false;
+//			for (Iterator it = acts.iterator(); it.hasNext();) {
+//				GroundAction gr = (GroundAction) it.next();
+//				if (gr.getPreconditions().can_be_true(current)) {
+//					newActions = true;
+//					level.add(gr);
+//					this.numberOfActions++;
+//					it.remove();
+//				}
+//			}
+//			// storing information about the fact that the goal has been reached. Pay
+//			// attention that for the numeric case having a goal that is not reached does
+//			// not imply that
+//			// the task is not solvable (using this procedure).
+//			if (!goal_reached && current.satisfy(goal)) {
+//				goal_reached = true;
+//				goal_reached_at = levels;
+//				// break;
+//			}
+//			// System.out.println(level.size());
+//			this.action_level.add(level.clone());
+//			if (!newActions) {
+//				break;// fixpoint reached for the propositional part. For the numeric this is not a
+//						// fixpoint, and seems hard to define a fixpoint for the numeric case
+//			}
+//			long start2 = System.currentTimeMillis();
+//			for (Object o : level) {
+//				GroundAction gr = (GroundAction) o;
+//				// System.out.println(gr.getName());
+//				gr.apply(current);
+//			}
+//			spezzTime += System.currentTimeMillis() - start2;
+//			levels++;
+//			// System.out.println("Level:"+levels);
+//		}
+//		System.out.println("Total Number of Levels Developped:" + levels);
+//		fixPoint = current.clone();
+//		FPCTime = System.currentTimeMillis() - start;
+//		relevantActions = level;
+//		this.cpu_time = System.currentTimeMillis() - start;
+//		return level;
+//	}
 
 	// The following function computes reacheability for the propositional part of
 	// the problem. The numeric part is also considered but there just for the
 	// purpose of identifying a
 	// the relevant set of actions. As before but it stops when the goal is reached
 	// in the relaxed state.
-	public Set reacheabilityTillGoal(PDDLState s, Condition goal, Set actions) {
-
-		RelState current = s.relaxState();
-		Set acts = new HashSet();
-		acts.addAll(actions);
-		long start = System.currentTimeMillis();
-		HashSet level = new HashSet(10000);
-		numberOfActions = 0;
-		levels = 0;
-
-		while (true) {
-			if (current.satisfy(goal)) {
-				goal_reached = true;
-				break;
-			}
-			boolean newActions = false;
-			for (Iterator it = acts.iterator(); it.hasNext();) {
-				GroundAction gr = (GroundAction) it.next();
-
-				if (gr.getPreconditions() == null || gr.getPreconditions().can_be_true(current)) {
-					newActions = true;
-					level.add(gr);
-					this.numberOfActions++;
-					it.remove();
-				}
-			}
-			// System.out.println("Here:"+action_level.size());
-			// System.out.println(level.size());
-			this.action_level.add(level.clone());
-
-			// THIS IS A BUG: IT SHOULD CONSIDER THE FACT THAT THE SATISFACTION OF AT LEAST
-			// A CONDITION IS SATISFIED!
-			if (!newActions) {
-				System.out.println("No new actions applicable and goal is not reacheable...");
-				break;// it means that the goal is unreacheable!
-			}
-			long start2 = System.currentTimeMillis();
-
-			for (Object o : level) {
-				GroundAction gr = (GroundAction) o;
-				// System.out.println(gr.getName());
-				gr.apply(current);
-			}
-			spezzTime += System.currentTimeMillis() - start2;
-			levels++;
-		}
-		fixPoint = current.clone();
-		FPCTime = System.currentTimeMillis() - start;
-		relevantActions = level;
-		this.cpu_time = System.currentTimeMillis() - start;
-		return level;
-	}
+//	public Set reacheabilityTillGoal(PDDLState s, Condition goal, Set actions) {
+//
+//		RelState current = s.relaxState();
+//		Set acts = new HashSet();
+//		acts.addAll(actions);
+//		long start = System.currentTimeMillis();
+//		HashSet level = new HashSet(10000);
+//		numberOfActions = 0;
+//		levels = 0;
+//
+//		while (true) {
+//			if (current.satisfy(goal)) {
+//				goal_reached = true;
+//				break;
+//			}
+//			boolean newActions = false;
+//			for (Iterator it = acts.iterator(); it.hasNext();) {
+//				GroundAction gr = (GroundAction) it.next();
+//
+//				if (gr.getPreconditions() == null || gr.getPreconditions().can_be_true(current)) {
+//					newActions = true;
+//					level.add(gr);
+//					this.numberOfActions++;
+//					it.remove();
+//				}
+//			}
+//			// System.out.println("Here:"+action_level.size());
+//			// System.out.println(level.size());
+//			this.action_level.add(level.clone());
+//
+//			// THIS IS A BUG: IT SHOULD CONSIDER THE FACT THAT THE SATISFACTION OF AT LEAST
+//			// A CONDITION IS SATISFIED!
+//			if (!newActions) {
+//				System.out.println("No new actions applicable and goal is not reacheable...");
+//				break;// it means that the goal is unreacheable!
+//			}
+//			long start2 = System.currentTimeMillis();
+//
+//			for (Object o : level) {
+//				GroundAction gr = (GroundAction) o;
+//				// System.out.println(gr.getName());
+//				gr.apply(current);
+//			}
+//			spezzTime += System.currentTimeMillis() - start2;
+//			levels++;
+//		}
+//		fixPoint = current.clone();
+//		FPCTime = System.currentTimeMillis() - start;
+//		relevantActions = level;
+//		this.cpu_time = System.currentTimeMillis() - start;
+//		return level;
+//	}
 
 	private MultiValuedMap extractPlan(ComplexCondition goal, int levels) {
 		ComplexCondition AG[] = new ComplexCondition[levels + 1];
@@ -460,38 +550,54 @@ public class RPG {
 		ArrayList rel_plan[] = new ArrayList[levels];
 
 		for (int t = levels - 1; t >= 0; t--) {
-			RelState s = (RelState) rel_state_level.get(t);
+			RelState state = (RelState) rel_state_level.get(t);
 			// AG[t] = AG[t+1].clone();
 			Iterator it = AG.sons.iterator();
+			
+			Collection sonsToAdd = new LinkedHashSet();
+
+			
+//			System.out.println("LEVEL "+t+"-------------------------");
+//			System.out.println("CURRENT GOALS: "+ AG.sons);
+			
 			// for (Iterator it=AG.sons.iterator();it.hasNext()){
 			while (it.hasNext()) {
 				Object o = it.next();
 				if (o instanceof Predicate) {
 					Predicate p = (Predicate) o;
+					
 					// System.out.println("Livello in esame:" + t);
 					// System.out.println(p.isSatisfied((RelState) this.rel_state_level.get(t )));
 					if (!((p.can_be_true((RelState) this.rel_state_level.get(t))))) {
 						// System.out.println("Searching for the support for:" + p);
-						GroundAction gr = searchForAndRemove((HashSet) this.action_level.get(t), p);
+						GroundAction gr = searchForAndRemove( (ArrayList) this.action_level.get(t), p);
 						if (gr == null) {
+							
+							
 
 							System.out.println("Error!! No supporter for " + p + " level " + t);
 							System.exit(-1);
 						}
-						// AG[t].sons.addAll(gr.getPreconditions().sons);
-						// AG[t].sons.addAll(gr.getNumeric().sons);
-						gr.apply(s);
+//						System.out.println("Applying Action: "+ gr.getName());
+//						
+//						System.out.println("PRECONDITIONS:"+gr.getPreconditions());
+//						System.out.println("PRECONDITION SONS:"+gr.getPreconditions().sons);
+						sonsToAdd.addAll(gr.getPreconditions().sons);
+					
+						gr.apply(state);
 						if (rel_plan[t] == null) {
 							rel_plan[t] = new ArrayList();
 						}
 						rel_plan[t].add(gr);
-						// AG.sons.remove(o);
+						//AG.sons.remove(o);
 						it.remove();
 					}
 
 				}
 
 			}
+			
+			AG.sons.addAll(sonsToAdd);
 //	            while (!AG.isSatisfied(s)) {
 ////	                GroundAction gr = bestSupport((HashSet) this.action_level.get(t), AG, s);
 //	                AG.sons.addAll(gr.getPreconditions().sons);
@@ -505,7 +611,7 @@ public class RPG {
 
 	}
 
-	private GroundAction searchForAndRemove(Collection get, Predicate p) {
+	private GroundAction searchForAndRemove(ArrayList get, Predicate p) {
 		Iterator it = get.iterator();
 		while (it.hasNext()) {
 			GroundAction gr = (GroundAction) it.next();
