@@ -11,6 +11,7 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 import com.hstairs.ppmajal.conditions.AndCond;
 import com.hstairs.ppmajal.conditions.ComplexCondition;
+import com.hstairs.ppmajal.conditions.Condition;
 import com.hstairs.ppmajal.conditions.Predicate;
 import com.hstairs.ppmajal.domain.PddlDomain;
 import com.hstairs.ppmajal.problem.EPddlProblem;
@@ -28,10 +29,15 @@ public class LandmarkExtraction {
 	public MultiValuedMap<Integer, ComplexCondition> fact_levels = new ArrayListValuedHashMap<>();;
 	public int levels;
 	public HashSet<Predicate> landmarkCandidates = new HashSet<Predicate>();
+	public HashSet<ComplexCondition> landmarkCandidates_new = new HashSet<ComplexCondition>();
+
 	public HashSet<Predicate> landmarks = new HashSet<Predicate>();
 	public MultiValuedMap<Integer, Predicate> goals = new ArrayListValuedHashMap<>();
+	public MultiValuedMap<Integer, Condition> goals_new = new ArrayListValuedHashMap<>();
+
 	public RPG rpg;
 	public LGG lgg;
+	public LGG_new lgg_new;
 	public String domainFile;
 	public String problemFile;
 
@@ -94,10 +100,13 @@ public class LandmarkExtraction {
 	public void createRPG() throws CloneNotSupportedException {
 
 		this.rpg = new RPG((PDDLState) this.problem.getInit());
+		
 
 		ArrayList[] relPlan = rpg.computeRelaxedPlan_new(((PDDLState) this.problem.getInit()), this.problem.getGoals(),
 				(Set) this.problem.getActions());
 		
+
+
 		this.levels = rpg.goal_reached_at;
 
 		for (int i = 0; i < relPlan.length; i++) {
@@ -109,28 +118,67 @@ public class LandmarkExtraction {
 			}
 
 		}
-		
-		
+
 		Iterable<Predicate> init = this.problem.getPredicatesInvolvedInInit();
-		
+
 		AndCond ac = new AndCond();
-		
-		for(Predicate p : init) {
-			
-			ac.addConditions(p);			
+
+		for (Predicate p : init) {
+
+			ac.addConditions(p);
 		}
-		
+
 		fact_levels.put(0, ac);
-		
-		
-		for(int i=0;i<levels;i++) {
-			
-			for(GroundAction gr : action_levels.get(i)) {
-				
-				fact_levels.put(i+1, gr.getAddList());			
-				
-			}		
+
+		for (int i = 0; i <= levels; i++) {
+
+			for (GroundAction gr : action_levels.get(i)) {
+
+				fact_levels.put(i + 1, gr.getAddList());
+			}
+
+			if (i > 0) {
+				fact_levels.putAll(i, fact_levels.get(i - 1));
+			}
 		}
+
+
+		
+		
+		
+
+		System.out.println("GOALS:");
+		System.out.println(problem.getGoals());
+		
+		
+		
+		
+		for (Condition c : (Collection<Condition>) problem.getGoals().sons) {
+			
+
+			for (int i = levels; i >= 0; i--) {
+
+				HashSet<Condition> fact_level = new HashSet<Condition>();
+
+				for(ComplexCondition cc : fact_levels.get(i)) {
+					fact_level.addAll(cc.sons);
+				}
+				
+//				System.out.println("Fact Level " + i + " contains goal " + c + ": " + fact_level.contains(c));
+//
+//				
+//				System.out.println("Fact level "+i+": "+fact_level);
+				
+
+				if (!fact_level.contains(c)) {
+
+					goals_new.put(i + 1, c);
+					break;
+				}
+			}
+		}
+
+	
 
 	}
 
@@ -139,14 +187,18 @@ public class LandmarkExtraction {
 
 		LandmarkExtraction le1 = new LandmarkExtraction();
 
-		le1.domainFile = "./resources/biotope_domain_v2.pddl";
-		le1.problemFile = "./resources/biotope_problem.pddl";
+//		le1.domainFile = "./resources/biotope_domain_v2.pddl";
+//		le1.problemFile = "./resources/biotope_problem.pddl";
+
+		le1.domainFile = "./resources/blocksworld/domain.pddl";
+		le1.problemFile = "./resources/blocksworld/problem.pddl";
 
 //		le1.domainFile = "./resources/kitchen_example/FIdomain.pddl";
 //		le1.problemFile = "./resources/kitchen_example/FIproblem.pddl";
 
 		le1.domain = new PddlDomain(le1.domainFile);
 		le1.problem = new EPddlProblem(le1.problemFile, le1.domain.getConstants(), le1.domain.types, le1.domain);
+		
 
 		le1.domain.substituteEqualityConditions();
 
@@ -164,31 +216,39 @@ public class LandmarkExtraction {
 		System.out.println("Size(X):" + le1.problem.getNumberOfNumericVariables());
 		System.out.println("Size(F):" + le1.problem.getNumberOfBooleanVariables());
 		
-		
+		System.out.println("GOALLSDFLSD"+ le1.problem.getGoals().sons);
+
 		le1.createRPG();
 		System.out.println("------------------");
 		System.out.println("ACTIONS");
-		for(Entry e : le1.action_levels.entries()) {
+		for (Entry e : le1.action_levels.entries()) {
 			System.out.println(e.getKey());
-			
-			GroundAction gr = ((GroundAction)e.getValue());
-			System.out.println(gr.getName());
-			
-			for(Object o : gr.getPreconditions().sons) {
-				System.out.println(o.getClass());
-			}
-			
+
+			GroundAction gr = ((GroundAction) e.getValue());
+			System.out.println(gr.getName() + " " + gr.getParameters());
 			System.out.println();
 		}
 		System.out.println("------------------");
 
 		System.out.println("FACTS");
-		for(Entry e : le1.fact_levels.entries()) {
+		for (Entry e : le1.fact_levels.entries()) {
 			System.out.println(e.getKey());
-			System.out.println(((ComplexCondition)e.getValue()));
+			System.out.println(((ComplexCondition) e.getValue()));
 			System.out.println();
 		}
-		
+
+		le1.lgg_new = new LGG_new();
+		le1.lgg_new.initialize(le1.problem.getGoals());
+
+		le1.generateLandmarkCandidates_new();
+
+		System.out.println("LANDMARK CANDIDATES:");
+		System.out.println(le1.landmarkCandidates_new);
+		System.out.println("LGG:");
+		System.out.println(le1.lgg_new.nodes);
+
+		/////////////// --------------------------------------------------
+
 //		le1.rpg = new RPG((PDDLState) le1.problem.getInit());
 //
 //		ArrayList[] relPlan = le1.rpg.computeRelaxedPlan_new(((PDDLState) le1.problem.getInit()),
@@ -423,6 +483,115 @@ public class LandmarkExtraction {
 
 	}
 
+	public void generateLandmarkCandidates_new() {
+
+		MultiValuedMap<Integer, Condition> C = new ArrayListValuedHashMap<>();
+
+		C = goals_new;
+
+		MultiValuedMap<Integer, Condition> C_dash;
+
+		while (C.size() > 0) {
+
+			C_dash = new ArrayListValuedHashMap<>();
+
+			for (Entry<Integer, Condition> entry : C.entries()) {
+
+				if (entry.getKey() > 0) {
+
+					MultiValuedMap<Integer, GroundAction> A = new ArrayListValuedHashMap<>();
+
+					// let A be the set of all actions a such that L_dash is element of add(a), and
+					// level(a) = level(L_dash) - 1
+					for (Entry<Integer, GroundAction> entryA : action_levels.entries()) {
+
+						if (entry.getValue() instanceof Predicate) {
+
+							if (entryA.getValue().getAddList().sons.contains(entry.getValue())
+									&& entryA.getKey() == (entry.getKey() - 1)) {
+
+								A.put(entryA.getKey(), entryA.getValue());
+							}
+						}
+						// if ComplexCondition
+						else {
+
+							if (entryA.getValue().getAddList().sons
+									.containsAll(((ComplexCondition) entry.getValue()).sons)
+									&& entryA.getKey() == (entry.getKey() - 1)) {
+
+								A.put(entryA.getKey(), entryA.getValue());
+							}
+
+						}
+
+					}
+
+//					System.out.println("AAAAAA");
+//					System.out.println(A);
+
+					// for all facts L such that for all a element A : L is element of pre(a)
+
+					if (A.size() == 0) {
+
+						// System.out.println("A is empty");
+
+					} else {
+
+						MultiValuedMap<Integer, ComplexCondition> temp = new ArrayListValuedHashMap<>();
+						ArrayList<ComplexCondition> temp2 = new ArrayList<ComplexCondition>();
+						boolean newList = true;
+
+						for (Entry<Integer, GroundAction> a : A.entries()) {
+
+							if (A.size() == 1) {
+
+								temp2.addAll(a.getValue().getPreconditions().sons);
+								break;
+							} else {
+
+								if (newList) {
+									temp2.addAll(a.getValue().getPreconditions().sons);
+									newList = false;
+								} else {
+									temp2.retainAll(a.getValue().getPreconditions().sons);
+								}
+
+							}
+
+						}
+
+						for (Condition c : temp2) {
+
+							if (!lgg_new.containsNode(c)) {
+
+							//	System.out.println("Adding node: " + c +" for top level goal "+ entry.getValue());
+
+								lgg_new.addNode(c);
+								
+							}
+							System.out.println("Adding edge: "+c+"--->"+entry.getValue());
+							lgg_new.addEdge(c, entry.getValue());
+						}
+
+						temp.putAll((entry.getKey() - 1), temp2);
+
+//						System.out.println("Temp:" + temp);
+
+						C_dash.putAll(temp);
+						landmarkCandidates_new.addAll(temp.values());
+
+					}
+				}
+
+			}
+
+			C = C_dash;
+
+		}
+
+	}
+
 	public void generatePredicateSet() {
 
 		predicates = new ArrayListValuedHashMap<>();
@@ -456,12 +625,6 @@ public class LandmarkExtraction {
 				}
 			}
 		}
-	}
-
-	public void generateFactSet() {
-
-		// TODO
-
 	}
 
 	public void evaluateCandidates() throws CloneNotSupportedException {

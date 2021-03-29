@@ -67,7 +67,7 @@ public class RPG {
         //System.out.println("Find relaxed plan");
         ArrayList ret = new ArrayList();
 
-        this.goal = goal;
+        this.goal = (ComplexCondition) goal.clone();
         RelState current = initialState.relaxState();
         rel_state_level.add(current.clone());
 
@@ -548,11 +548,14 @@ public class RPG {
 		ComplexCondition AG;
 		AG = this.goal;
 		ArrayList rel_plan[] = new ArrayList[levels];
+		
+		
+		LinkedHashSet tmp = (LinkedHashSet) AG.sons;
 
 		for (int t = levels - 1; t >= 0; t--) {
 			RelState state = (RelState) rel_state_level.get(t);
 			// AG[t] = AG[t+1].clone();
-			Iterator it = AG.sons.iterator();
+			Iterator it = tmp.iterator();
 			
 			Collection sonsToAdd = new LinkedHashSet();
 
@@ -561,8 +564,13 @@ public class RPG {
 //			System.out.println("CURRENT GOALS: "+ AG.sons);
 			
 			// for (Iterator it=AG.sons.iterator();it.hasNext()){
+			//System.out.println("CURRENT ROUND GOALS:");
 			while (it.hasNext()) {
 				Object o = it.next();
+				
+			//	System.out.print(o);
+				
+				
 				if (o instanceof Predicate) {
 					Predicate p = (Predicate) o;
 					
@@ -578,7 +586,8 @@ public class RPG {
 							System.out.println("Error!! No supporter for " + p + " level " + t);
 							System.exit(-1);
 						}
-//						System.out.println("Applying Action: "+ gr.getName());
+//						System.out.println();
+//						System.out.println("Applying Action: "+ gr.getName()+gr.getParameters()+ "for fact "+p);
 //						
 //						System.out.println("PRECONDITIONS:"+gr.getPreconditions());
 //						System.out.println("PRECONDITION SONS:"+gr.getPreconditions().sons);
@@ -594,10 +603,20 @@ public class RPG {
 					}
 
 				}
+				else {
+					
+					//TODO else what???
+					
+					
+				}
 
 			}
 			
-			AG.sons.addAll(sonsToAdd);
+//			System.out.println();
+//			System.out.println("TMP AFTER ROUND:"+tmp);
+//			
+//			System.out.println("NEW ROUND GOALS:"+sonsToAdd);
+			tmp.addAll(sonsToAdd);
 //	            while (!AG.isSatisfied(s)) {
 ////	                GroundAction gr = bestSupport((HashSet) this.action_level.get(t), AG, s);
 //	                AG.sons.addAll(gr.getPreconditions().sons);
