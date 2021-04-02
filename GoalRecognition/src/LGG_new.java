@@ -1,11 +1,15 @@
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
+
+import org.apache.commons.collections4.MultiValuedMap;
 
 import com.hstairs.ppmajal.conditions.ComplexCondition;
 import com.hstairs.ppmajal.conditions.Condition;
@@ -43,6 +47,40 @@ public class LGG_new {
 
 	}
 
+	public void removeNode(Condition node) {
+
+		Node_new nodeToRemove = null;
+
+		for (Node_new n : nodes) {
+
+			if (n.getNode().equals(node)) {
+
+				for (Node_new prev : n.getPrev().values()) {
+
+					prev.getNext().remove(n);
+				}
+				for (Node_new next : n.getNext()) {
+
+					next.getPrev().remove(n);
+				}
+
+				nodeToRemove = n;
+				System.out.println("Found Node to Remove");
+				break;
+
+			}
+
+		}
+
+		if (nodeToRemove != null) {
+			facts.removeAll(nodeToRemove.getSons());
+			nodes.remove(nodeToRemove);
+		} else {
+			System.out.println("Didnt find node to remove");
+		}
+
+	}
+
 	public LinkedHashSet<Condition> getFacts() {
 
 		return this.facts;
@@ -53,14 +91,15 @@ public class LGG_new {
 		this.goals = g;
 
 //		facts.addAll(g.sons);
-		
-		for(Condition c : (Collection<Condition>) g.sons) {
+
+		for (Condition c : (Collection<Condition>) g.sons) {
 			this.addNode(c);
+			this.getNodeFromCond(c).addLmSetID(0);
 		}
 
 	}
 
-	public Node_new getNodeFromComplexCond(ComplexCondition p) {
+	public Node_new getNodeFromCond(Condition p) {
 
 		for (Node_new n : nodes) {
 			if (n.getNode().equals(p)) {
@@ -72,9 +111,8 @@ public class LGG_new {
 
 	}
 
-	public void addEdge(Condition node, Condition next) {
-		
-		
+	public void addEdge(Condition node, Condition next, Integer i) {
+
 //		System.out.println("TRYING TO ADD EDGE");
 //		System.out.println("NODE: "+node+" , NEXT: "+next);
 //		System.out.println();
@@ -91,22 +129,20 @@ public class LGG_new {
 		Node_new nextt = null;
 
 		if (node instanceof Predicate && next instanceof Predicate) {
-			
-			
 
 			for (Node_new n : nodes) {
 
 				if (!foundNode && n.node.equals(node)) {
-					
-					//System.out.println("FOUND NODE");
+
+					// System.out.println("FOUND NODE");
 
 					nodee = n;
 					foundNode = true;
 				}
 
 				if (!foundNext && n.node.equals(next)) {
-					
-					//System.out.println("FOUND NEXT");
+
+					// System.out.println("FOUND NEXT");
 
 					nextt = n;
 					foundNext = true;
@@ -167,7 +203,7 @@ public class LGG_new {
 		}
 
 		nodee.addNext(nextt);
-		nextt.addPrevious(nodee);
+		nextt.addPrevious(i,nodee);
 
 	}
 
@@ -176,27 +212,45 @@ public class LGG_new {
 		return this.nodes;
 	}
 
-	public HashSet<Node_new> getAllPredecessors(Node_new n) {
-
-		LinkedHashSet<Node_new> predecessors = new LinkedHashSet<Node_new>();
-
-		ArrayList<Node_new> tmp = new ArrayList<Node_new>();
-
-		tmp.add(n);
-
-		Iterator it = tmp.listIterator();
-
-		while (it.hasNext()) {
-
-			Node_new tmpNode = (Node_new) it.next();
-			predecessors.addAll(tmpNode.getPrev());
-			tmp.addAll(tmpNode.getPrev());
-
-			tmp.remove(it);
+	public void getAllPredecessors(Node_new n, MultiValuedMap<Integer, Node_new> predecessors) {
+		
+		predecessors.putAll(n.getPrev());
+		
+		for(Node_new prev : n.getPrev().values()) {
+			getAllPredecessors(prev, predecessors);
 		}
 
-		return predecessors;
+//		LinkedHashSet<Node_new> predecessors = new LinkedHashSet<Node_new>();
+//
+//		ArrayList<Node_new> tmp = new ArrayList<Node_new>();
+//
+//		tmp.add(n);
+//
+//		ListIterator<Node_new> it = tmp.listIterator();
+//
+//		while (it.hasNext()) {
+//
+//			Node_new tmpNode = (Node_new) it.next();
+//			
+//			predecessors.addAll(tmpNode.getPrev());
+//			
+//			
+//			//TODO works correctly?
+//			it.remove();
+//			
+//			for(Node_new node : tmpNode.getPrev()) {
+//				it.add(node);
+//			}
+//			//tmp.addAll(tmpNode.getPrev());
+//
+//			//tmp.remove(it);
+//			
+//
+//		}
+//
+//		return predecessors;
 
 	}
-
+	
+	
 }

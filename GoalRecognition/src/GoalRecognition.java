@@ -1,10 +1,22 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
 
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
+import org.apache.commons.collections4.multiset.HashMultiSet;
+
+import com.hstairs.ppmajal.conditions.AndCond;
 import com.hstairs.ppmajal.conditions.ComplexCondition;
+import com.hstairs.ppmajal.conditions.Condition;
+import com.hstairs.ppmajal.conditions.OrCond;
 import com.hstairs.ppmajal.conditions.Predicate;
 import com.hstairs.ppmajal.problem.GroundAction;
 
@@ -41,7 +53,7 @@ public class GoalRecognition {
 			if (!initialStateSet) {
 
 				for (Predicate p : le.problem.getPredicatesInvolvedInInit()) {
-					System.out.println("ADDING TO INITIAL STATE................................"+p);
+					System.out.println("ADDING TO INITIAL STATE................................" + p);
 					initialState.add(p);
 				}
 				initialStateSet = true;
@@ -51,12 +63,12 @@ public class GoalRecognition {
 
 		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMsInObservations = computeAchievedLandmarksInObservations(
 				initialState, candidateGoals, observations, candidateGoalsPlusLMs);
-		
+
 		System.out.println("Achieved Landmarks in Observations:");
-		for(Entry<ComplexCondition, HashSet<Predicate>> e : achievedLMsInObservations.entrySet()) {
-			
-			System.out.println("Goal: "+e.getKey());
-			System.out.println("Achieved LMs: "+e.getValue());
+		for (Entry<ComplexCondition, HashSet<Predicate>> e : achievedLMsInObservations.entrySet()) {
+
+			System.out.println("Goal: " + e.getKey());
+			System.out.println("Achieved LMs: " + e.getValue());
 		}
 
 		for (Entry<ComplexCondition, HashSet<Predicate>> entry : achievedLMsInObservations.entrySet()) {
@@ -69,22 +81,140 @@ public class GoalRecognition {
 
 				HashSet<Predicate> LMsOfSubGoal = lgg.getAllPredecessors(lgg.getNodeFromPredicate(subGoal));
 
-				double denominator = LMsOfSubGoal.size()+1;
+				double denominator = LMsOfSubGoal.size() + 1;
 
 				LMsOfSubGoal.retainAll(entry.getValue());
 
 				double numerator = LMsOfSubGoal.size();
 
 				sumCompletionOfSubGoals += (numerator / denominator);
-				System.out.println(numerator +" out of "+denominator+"-------------------------");
+				System.out.println(numerator + " out of " + denominator + "-------------------------");
 
 			}
 
-			System.out.println("Sum Completion of Subgoal: "+ sumCompletionOfSubGoals);
-			System.out.println("Number of Subgoals: "+entry.getKey().getInvolvedPredicates().size());
-			
-			
+			System.out.println("Sum Completion of Subgoal: " + sumCompletionOfSubGoals);
+			System.out.println("Number of Subgoals: " + entry.getKey().getInvolvedPredicates().size());
+
 			double h_gc = sumCompletionOfSubGoals / entry.getKey().getInvolvedPredicates().size();
+
+			recognizedGoals.put(entry.getKey(), h_gc);
+
+		}
+
+		return recognizedGoals;
+
+	}
+
+	public static HashMap<ComplexCondition, Double> recognizeGoals_new(ArrayList<GroundAction> observations,
+			String domainFile, HashSet<String> problemFiles) throws Exception {
+		// assume different Problems as candidate Goals with same initial state
+
+		HashMap<ComplexCondition, Double> recognizedGoals = new HashMap<ComplexCondition, Double>();
+
+		HashSet<ComplexCondition> candidateGoals = new HashSet<ComplexCondition>();
+		HashMap<ComplexCondition, LGG_new> candidateGoalsPlusLMs = new HashMap<ComplexCondition, LGG_new>();
+
+		boolean initialStateSet = false;
+		LinkedHashSet<Predicate> initialState = new LinkedHashSet<Predicate>();
+
+		for (String problem : problemFiles) {
+
+			LandmarkExtraction le = new LandmarkExtraction();
+			le.computeLandmarks_new(domainFile, problem);
+
+			candidateGoals.add(le.problem.getGoals());
+			candidateGoalsPlusLMs.put(le.problem.getGoals(), le.lgg_new);
+
+			if (!initialStateSet) {
+
+				for (Predicate p : le.problem.getPredicatesInvolvedInInit()) {
+					initialState.add(p);
+				}
+				initialStateSet = true;
+			}
+
+		}
+
+		HashMap<ComplexCondition, HashSet<Condition>> achievedLMsInObservations = computeAchievedLandmarksInObservations_new(
+				initialState, candidateGoals, observations, candidateGoalsPlusLMs);
+
+//		System.out.println("Achieved Landmarks in Observations:------------------------");
+//		for (Entry<ComplexCondition, HashSet<Condition>> e : achievedLMsInObservations.entrySet()) {
+//
+//			System.out.println("Goal: " + e.getKey());
+//			System.out.println("Achieved LMs: " + e.getValue());
+//		}
+
+		for (Entry<ComplexCondition, HashSet<Condition>> entry : achievedLMsInObservations.entrySet()) {
+
+			LGG_new lgg = candidateGoalsPlusLMs.get(entry.getKey());
+
+			double sumCompletionOfSubGoals = 0;
+
+			for (Condition subGoal : (Collection<Condition>) (entry.getKey().sons)) {
+
+				MultiValuedMap<Integer, Node_new> LMsOfSubGoal = new ArrayListValuedHashMap<>();
+			
+
+				lgg.getAllPredecessors(lgg.getNodeFromCond(subGoal), LMsOfSubGoal);
+
+
+				double denominator = LMsOfSubGoal.keySet().size() + 1;
+
+				MultiSet<Integer> achievedLMSets = new HashMultiSet<Integer>();
+
+				boolean subgoalAchieved = false;
+				
+				for (Condition c : entry.getValue()) {
+					
+					if (!subgoalAchieved && subGoal.equals(c)) {
+						achievedLMSets.add(0);
+						subgoalAchieved = true;
+					}
+					
+					for (Entry<Integer, Node_new> n : LMsOfSubGoal.entries()) {
+
+						if (n.getValue().getNode().equals(c)) {
+							// System.out.println("ACHIEVED "+c);
+							achievedLMSets.add(n.getKey());
+						}
+
+						
+						
+					}
+				}
+
+
+				
+				double numerator = 0;
+				
+				MultiSet<Integer> allLMSets = new HashMultiSet<Integer>();
+				allLMSets.addAll(LMsOfSubGoal.keys());
+				allLMSets.add(0);
+				
+				
+				
+				for(org.apache.commons.collections4.MultiSet.Entry<Integer> LMSetEntry : allLMSets.entrySet()) {
+					for(org.apache.commons.collections4.MultiSet.Entry<Integer> achievedLMSetEntry : achievedLMSets.entrySet()) {
+						
+						if(LMSetEntry.getElement() == achievedLMSetEntry.getElement() && LMSetEntry.getCount() == achievedLMSetEntry.getCount()) {
+							
+							numerator++;
+						}					
+					}
+
+				}
+
+
+				sumCompletionOfSubGoals += (numerator / denominator);
+				System.out.println(subGoal+": "+numerator + " out of " + denominator + "-----------");
+
+			}
+
+//			System.out.println("Sum Completion of Subgoal: " + sumCompletionOfSubGoals);
+//			System.out.println("Number of Subgoals: " + entry.getKey().sons.size());
+
+			double h_gc = sumCompletionOfSubGoals / entry.getKey().sons.size();
 
 			recognizedGoals.put(entry.getKey(), h_gc);
 
@@ -112,7 +242,6 @@ public class GoalRecognition {
 
 			// for each observed action o in O do
 			for (GroundAction observation : observations) {
-				
 
 				HashSet<Predicate> prePlusAdd = new HashSet<Predicate>();
 				prePlusAdd.addAll(observation.getPreconditions().getInvolvedPredicates());
@@ -141,6 +270,117 @@ public class GoalRecognition {
 				}
 				AL.addAll(Lpred);
 
+			}
+
+			goalsPlusAchievedLMs.put(goal, AL);
+
+		}
+
+		return goalsPlusAchievedLMs;
+
+	}
+
+	public static HashMap<ComplexCondition, HashSet<Condition>> computeAchievedLandmarksInObservations_new(
+			LinkedHashSet<Predicate> initialState, HashSet<ComplexCondition> candidateGoals,
+			ArrayList<GroundAction> observations, HashMap<ComplexCondition, LGG_new> candidateGoalsPlusLMs) {
+
+		HashMap<ComplexCondition, HashSet<Condition>> goalsPlusAchievedLMs = new HashMap<ComplexCondition, HashSet<Condition>>();
+
+		// for each goal G in G do
+		for (ComplexCondition goal : candidateGoals) {
+
+			LGG_new LG = candidateGoalsPlusLMs.get(goal);
+			HashSet<Condition> LI = new HashSet<Condition>();
+
+			for (Node_new node : LG.getNodes()) {
+
+				Condition n = node.getNode();
+
+				if (n instanceof Predicate) {
+
+					if (initialState.contains(n)) {
+						LI.add(n);
+					}
+
+				} else if (n instanceof AndCond) {
+					if (initialState.containsAll(((AndCond) n).sons)) {
+						LI.add(n);
+					}
+				} else if (n instanceof OrCond) {
+
+					if (!Collections.disjoint(initialState, ((OrCond) n).sons)) {
+						LI.add(n);
+					}
+
+				} else {
+					System.out.println("Unsupported Condition Type");
+				}
+
+			}
+
+			HashSet<Node_new> L = new HashSet<Node_new>();
+
+			HashSet<Condition> AL = new HashSet<Condition>();
+
+			// for each observed action o in O do
+			for (GroundAction observation : observations) {
+
+				HashSet<Condition> prePlusAdd = new HashSet<Condition>();
+				prePlusAdd.addAll(observation.getPreconditions().sons);
+				prePlusAdd.addAll(observation.getAddList().sons);
+
+				// Set L
+				for (Node_new node : LG.getNodes()) {
+
+					Condition n = node.getNode();
+
+					if (n instanceof Predicate) {
+
+						if (prePlusAdd.contains(n)) {
+							L.add(node);
+						}
+
+					} else if (n instanceof AndCond) {
+
+						if (prePlusAdd.containsAll(((AndCond) n).sons)) {
+							L.add(node);
+						}
+
+					} else if (n instanceof OrCond) {
+
+						if (!Collections.disjoint(prePlusAdd, ((OrCond) n).sons)) {
+							L.add(node);
+						}
+
+					} else {
+
+						System.out.println("Unsupported Condition Type");
+					}
+
+				}
+
+				// Set Predecessors L
+				HashSet<Node_new> Lpred = new HashSet<Node_new>();
+
+				for (Node_new node : L) {
+
+					MultiValuedMap<Integer, Node_new> tmpLpred = new ArrayListValuedHashMap<>();
+					LG.getAllPredecessors(node, tmpLpred);
+
+					for (Node_new prevv : tmpLpred.values()) {
+						Lpred.add(prevv);
+					}
+
+				}
+
+				// Set achieved LMs for goal
+				AL.addAll(LI);
+				for (Node_new node : L) {
+					AL.add(node.getNode());
+				}
+				for (Node_new node : Lpred) {
+					AL.add(node.getNode());
+				}
 			}
 
 			goalsPlusAchievedLMs.put(goal, AL);
