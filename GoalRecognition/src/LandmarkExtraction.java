@@ -150,29 +150,23 @@ public class LandmarkExtraction {
 
 		Iterable<Predicate> init = this.problem.getPredicatesInvolvedInInit();
 
-		AndCond ac = new AndCond();
+		
 
-		for (Predicate p : init) {
-
-			ac.addConditions(p);
-		}
-
-		fact_levels.put(0, ac);
+		fact_levels.putAll(0, init);
 
 		for (int i = 0; i <= levels; i++) {
 
 			for (GroundAction gr : action_levels.get(i)) {
 
-				fact_levels.put(i + 1, gr.getAddList());
+				fact_levels.putAll(i + 1, gr.getAddList().sons);
 			}
 
-			if (i > 0) {
-				fact_levels.putAll(i, fact_levels.get(i - 1));
-			}
+//			if (i > 0) {
+//				fact_levels.putAll(i, fact_levels.get(i - 1));
+//			}
 		}
 
-		System.out.println("GOALS:");
-		System.out.println(problem.getGoals());
+
 
 		for (Condition c : (Collection<Condition>) problem.getGoals().sons) {
 
@@ -209,14 +203,11 @@ public class LandmarkExtraction {
 
 		LandmarkExtraction le1 = new LandmarkExtraction();
 
-//		le1.domainFile = "./resources/biotope_domain_v2.pddl";
-//		le1.problemFile = "./resources/biotope_problem.pddl";
+		le1.domainFile = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/blocksworld/domain.pddl";
+		le1.problemFile = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/blocksworld/problemRED.pddl";
 
-		le1.domainFile = "./resources/blocksworld/domain.pddl";
-		le1.problemFile = "./resources/blocksworld/problemRED.pddl";
-
-//		le1.domainFile = "./resources/kitchen_example/FIdomain.pddl";
-//		le1.problemFile = "./resources/kitchen_example/FIproblem.pddl";
+//		le1.domainFile = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/kitchen_example/FIdomain.pddl";
+//		le1.problemFile = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/kitchen_example/FIproblem.pddl";
 
 		le1.domain = new PddlDomain(le1.domainFile);
 		le1.problem = new EPddlProblem(le1.problemFile, le1.domain.getConstants(), le1.domain.types, le1.domain);
@@ -244,7 +235,6 @@ public class LandmarkExtraction {
 		ArrayList<GroundAction> observations = new ArrayList<GroundAction>();
 
 		for (Entry e : le1.action_levels.entries()) {
-			
 
 			GroundAction gr = (GroundAction) e.getValue();
 			if (i == 0 || i == 3) {
@@ -253,14 +243,7 @@ public class LandmarkExtraction {
 			i++;
 		}
 
-		//System.out.println(observations);
-//
-//		System.out.println("FACTS");
-//		for (Entry e : le1.fact_levels.entries()) {
-//			System.out.println(e.getKey());
-//			System.out.println(((ComplexCondition) e.getValue()));
-//			System.out.println();
-//		}
+		System.out.println(observations);
 
 		le1.lgg_new = new LGG_new();
 		le1.lgg_new.initialize(le1.problem.getGoals());
@@ -268,9 +251,9 @@ public class LandmarkExtraction {
 		le1.generateLandmarkCandidates_new();
 
 		System.out.println("LGG:");
-		
-		for(Node_new n: le1.lgg_new.getNodes()) {
-			
+
+		for (Node_new n : le1.lgg_new.getNodes()) {
+
 			System.out.println(n);
 		}
 		System.out.println("------------------");
@@ -282,33 +265,39 @@ public class LandmarkExtraction {
 
 		System.out.println("LANDMARKS:");
 		System.out.println(le1.landmarks_new);
-		
-		
 
 		LandmarkExtraction le2 = new LandmarkExtraction();
 		LandmarkExtraction le3 = new LandmarkExtraction();
 
-		String problemFile2 = "./resources/blocksworld/problemBED.pddl";
-		String problemFile3 = "./resources/blocksworld/problemSAD.pddl";
+		String problemFile2 = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/blocksworld/problemBED.pddl";
+		String problemFile3 = "C:/Users/Johannes Schaum/git/GoalRecognition/GoalRecognition/resources/blocksworld/problemSAD.pddl";
 
 		le2.computeLandmarks_new(le1.domainFile, problemFile2);
 		le3.computeLandmarks_new(le1.domainFile, problemFile3);
 
 		HashSet<ComplexCondition> candidateGoals = new HashSet<ComplexCondition>();
 		candidateGoals.add(le1.problem.getGoals());
-//		candidateGoals.add(le2.problem.getGoals());
-//		candidateGoals.add(le3.problem.getGoals());
+		candidateGoals.add(le2.problem.getGoals());
+		candidateGoals.add(le3.problem.getGoals());
 
 		HashMap<ComplexCondition, LGG_new> candidateGoalsPlusLMs = new HashMap<ComplexCondition, LGG_new>();
 
 		candidateGoalsPlusLMs.put(le1.problem.getGoals(), le1.lgg_new);
-//		candidateGoalsPlusLMs.put(le2.problem.getGoals(), le2.lgg_new);
-//		candidateGoalsPlusLMs.put(le3.problem.getGoals(), le3.lgg_new);
+		candidateGoalsPlusLMs.put(le2.problem.getGoals(), le2.lgg_new);
+		candidateGoalsPlusLMs.put(le3.problem.getGoals(), le3.lgg_new);
+
+		System.out.println("LGG 2:");
+
+		for (Node_new n : le2.lgg_new.getNodes()) {
+
+			System.out.println(n);
+		}
+		System.out.println("--------------");
 
 		HashSet<String> problemFiles = new HashSet<String>();
 		problemFiles.add(le1.problemFile);
-//		problemFiles.add(problemFile2);
-//		problemFiles.add(problemFile3);
+		problemFiles.add(problemFile2);
+		problemFiles.add(problemFile3);
 
 		HashMap<ComplexCondition, Double> recognizedGoals = GoalRecognition.recognizeGoals_new(observations,
 				le1.domainFile, problemFiles);
@@ -320,154 +309,6 @@ public class LandmarkExtraction {
 			System.out.println("GOAL COMPLETION HEURISTIC: " + e.getValue());
 			System.out.println("--------------------------");
 		}
-
-//		System.out.println("REMOVED CANDIDATES");
-//		le1.landmarkCandidates_new.removeAll(le1.landmarks_new);
-//		System.out.println(le1.landmarkCandidates_new);
-
-		/////////////// --------------------------------------------------
-
-//		le1.rpg = new RPG((PDDLState) le1.problem.getInit());
-//
-//		ArrayList[] relPlan = le1.rpg.computeRelaxedPlan_new(((PDDLState) le1.problem.getInit()),
-//				le1.problem.getGoals(), (Set) le1.problem.getActions());
-//
-//		System.out.println("RELAXED PLAN");
-//
-//		int i = 1;
-//		for (Object o : relPlan) {
-//
-//			ArrayList<GroundAction> grl = (ArrayList<GroundAction>) o;
-//			System.out.println("LEVEL: " + i++);
-//			for (GroundAction gr : grl) {
-//				System.out.println(gr.getName());
-//			}
-//			System.out.println("------");
-//
-//		}
-//
-//		ComplexCondition goal = le1.problem.getGoals();
-//
-//		AndCond subGoal = new AndCond();
-
-		///////////////////////////////////////////////////////////////////////////////
-
-//		le1.lgg = new LGG();
-//		le1.lgg.initialize(le1.problem.getGoals().getInvolvedPredicates());
-//
-//		le1.actions = le1.rpg.computeRelaxedPlan(((PDDLState) le1.problem.getInit()), le1.problem.getGoals(),
-//				(Set) le1.problem.getActions());
-//
-//		le1.levels = le1.rpg.levels;
-//
-//		le1.generatePredicateSet();
-//
-//		System.out.println("Predicates: " + le1.predicates);
-//
-//		le1.generateLandmarkCandidates();
-//
-//		System.out.println("LANDMARK CANDIDATES: ");
-//		System.out.println(le1.landmarkCandidates);
-//
-//		System.out.println("------------------------------------------");
-//		le1.evaluateCandidates();
-//
-//		System.out.println("LANDMARKS: ");
-//		System.out.println(le1.landmarks);
-//
-//		System.out.println("LGG: ");
-//		System.out.println(le1.lgg.nodes);
-
-		///////////////////////////////////////////////////////////////////////////
-
-//		LandmarkExtraction le2 = new LandmarkExtraction();
-//		LandmarkExtraction le3 = new LandmarkExtraction();
-
-//		String problemFile2 = "./resources/biotope_problem2.pddl";
-//		String problemFile3 = "./resources/biotope_problem3.pddl";
-
-//		le2.computeLandmarks(le1.domainFile, problemFile2);
-//		le3.computeLandmarks(le1.domainFile, problemFile3);
-//
-//		HashSet<ComplexCondition> candidateGoals = new HashSet<ComplexCondition>();
-//		candidateGoals.add(le1.problem.getGoals());
-//		candidateGoals.add(le2.problem.getGoals());
-//		candidateGoals.add(le3.problem.getGoals());
-//
-//		ArrayList<GroundAction> observations = new ArrayList<GroundAction>();
-//		observations.addAll(le1.actions.get(0));
-//		
-//		System.out.println("OBSERVATIONS:");
-//		System.out.println(observations);
-//
-//		HashMap<ComplexCondition, LGG> candidateGoalsPlusLMs = new HashMap<ComplexCondition, LGG>();
-//
-//		candidateGoalsPlusLMs.put(le1.problem.getGoals(), le1.lgg);
-//		candidateGoalsPlusLMs.put(le2.problem.getGoals(), le2.lgg);
-//		candidateGoalsPlusLMs.put(le3.problem.getGoals(), le3.lgg);
-//		
-//		HashSet<String> problemFiles = new HashSet<String>();
-//		problemFiles.add(le1.problemFile);
-//		problemFiles.add(problemFile2);
-//		problemFiles.add(problemFile3);
-//
-//		
-//		HashMap<ComplexCondition,Double> recognizedGoals = GoalRecognition.recognizeGoals(observations, le1.domainFile, problemFiles);
-//		
-//		
-//		System.out.println("RECOGNIZED GOALS: ");
-//		System.out.println();
-//		for(Entry<ComplexCondition,Double> e : recognizedGoals.entrySet()) {
-//			System.out.println("GOAL: " +e.getKey());
-//			System.out.println("GOAL COMPLETION HEURISTIC: " + e.getValue());
-//			System.out.println("--------------------------");
-//		}
-
-		// le1.problem.getPredicatesInvolvedInInit();
-
-		// Testing achieved LMs
-
-//		HashMap<ComplexCondition, HashSet<Predicate>> achievedLMS = GoalRecognition
-//				.computeAchievedLandmarksInObservations(new HashSet<Predicate>(), candidateGoals, observations,
-//						candidateGoalsPlusLMs);
-//
-//
-//		System.out.println("ACHIEVED LANDMARKS IN OBSERVATIONS");
-//		for (Entry c : achievedLMS.entrySet()) {
-//
-//			System.out.println("-------------------------------------------------------");
-//			System.out.println("GOAL: " + c.getKey());
-//			System.out.println();
-//			System.out.println("ACHIEVED LMs: " + c.getValue());
-//
-//		}
-
-		// Testing Candidate Goal Filtering
-
-//		HashSet<Predicate> initialPredicates = new HashSet<Predicate>();
-//		
-//		
-//		for(Predicate p : le1.problem.getPredicatesInvolvedInInit()) {
-//			
-//			initialPredicates.add(p);
-//			
-//			
-//		}
-//		
-//		System.out.println("INITIAL PREDICATES: "+initialPredicates);
-//		System.out.println(le1.problem.getPredicatesInvolvedInInit());
-//		
-//		
-//
-//		HashMap<ComplexCondition, Double> candidateGoalsFiltered = GoalRecognition.filterCandidateGoalsInObservations(
-//				initialPredicates, candidateGoals, observations, candidateGoalsPlusLMs, 1.0,
-//				(HashSet<GroundAction>) le1.problem.getActions());
-//		
-//		
-//		System.out.println("....................................................................");
-//		
-//		System.out.println("FILTERED CANDIDATE GOALS:");
-//		System.out.println(candidateGoalsFiltered);
 
 	}
 
@@ -564,11 +405,13 @@ public class LandmarkExtraction {
 	public void generateLandmarkCandidates_new() {
 
 		MultiValuedMap<Integer, Condition> C = new ArrayListValuedHashMap<>();
-
-		C = goals_new;
+		
+		for(Condition c : goals_new.values()) {
+			C.put(this.getFactLevel(c), c);
+		}
 
 		MultiValuedMap<Integer, Condition> C_dash;
-		
+
 		int lmSetID = 1;
 
 		while (C.size() > 0) {
@@ -576,6 +419,8 @@ public class LandmarkExtraction {
 			C_dash = new ArrayListValuedHashMap<>();
 
 			for (Entry<Integer, Condition> entry : C.entries()) {
+				
+			//	System.out.println("Condition:"+ entry.getValue()+", Level:"+ entry.getKey());
 
 				if (entry.getKey() > 0) {
 
@@ -622,6 +467,8 @@ public class LandmarkExtraction {
 //					System.out.println(A);
 
 					// for all facts L such that for all a element A : L is element of pre(a)
+					
+		//			System.out.println("Number of Actions:"+A.size());
 
 					if (A.size() == 0) {
 
@@ -633,7 +480,10 @@ public class LandmarkExtraction {
 						ArrayList<Condition> temp2 = new ArrayList<Condition>();
 						boolean newList = true;
 
+					//	System.out.println("ACTIONS:");
 						for (Entry<Integer, GroundAction> a : A.entries()) {
+							
+						//	System.out.println(a.getKey()+":"+a.getValue().getName()+"-"+a.getValue().getParameters());
 
 							if (A.size() == 1) {
 
@@ -656,17 +506,18 @@ public class LandmarkExtraction {
 
 							if (!lgg_new.containsNode(c)) {
 
-								// System.out.println("Adding node: " + c +" for top level goal "+
-								// entry.getValue());
-								temp.put((entry.getKey() - 1), c);
+						//		 System.out.println("Adding node: " + c +" for top level goal "+ entry.getValue());
+								
+								 //TODO   WORK IN PROGRESS
+								 temp.put(this.getFactLevel(c), c);
 
 								lgg_new.addNode(c);
 
 							}
-							
+
 							lgg_new.getNodeFromCond(c).addLmSetID(lmSetID);
-							// System.out.println("Adding edge: " + c + "--->" + entry.getValue());
-							lgg_new.addEdge(c, entry.getValue(),lmSetID);
+					//		System.out.println("Adding edge: " + c + "--->" + entry.getValue());
+							lgg_new.addEdge(c, entry.getValue(), lmSetID);
 						}
 
 						// temp.putAll((entry.getKey() - 1), temp2);
@@ -678,7 +529,7 @@ public class LandmarkExtraction {
 
 					}
 				}
-				
+
 				lmSetID++;
 
 			}
@@ -918,5 +769,24 @@ public class LandmarkExtraction {
 		}
 
 		lgg.getNodes().removeAll(nodesToRemove);
+	}
+	
+	public int getFactLevel(Condition c) {
+		
+	//	System.out.println("GET LEVEL OF "+c);
+		for(int i=0;i<=levels;i++) {
+			
+			Collection<Condition> level = fact_levels.get(i);
+		//	System.out.println("LEVEL:"+level);
+			
+			if(level.contains(c)) {
+				return i;
+			}
+			
+		}
+		
+		System.out.println("NOT FOUND");
+		
+		return 999;
 	}
 }

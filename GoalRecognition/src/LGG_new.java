@@ -203,7 +203,7 @@ public class LGG_new {
 		}
 
 		nodee.addNext(nextt);
-		nextt.addPrevious(i,nodee);
+		nextt.addPrevious(i, nodee);
 
 	}
 
@@ -213,11 +213,15 @@ public class LGG_new {
 	}
 
 	public void getAllPredecessors(Node_new n, MultiValuedMap<Integer, Node_new> predecessors) {
-		
+
 		predecessors.putAll(n.getPrev());
-		
-		for(Node_new prev : n.getPrev().values()) {
-			getAllPredecessors(prev, predecessors);
+
+		for (Node_new prev : n.getPrev().values()) {
+
+			//TODO WORK IN PROGRESS
+			if (!predecessors.values().containsAll(prev.getPrev().values())) { //&& !prev.getLmSetIDs().contains(0)) {
+				getAllPredecessors(prev, predecessors);
+			}
 		}
 
 //		LinkedHashSet<Node_new> predecessors = new LinkedHashSet<Node_new>();
@@ -251,6 +255,5 @@ public class LGG_new {
 //		return predecessors;
 
 	}
-	
-	
+
 }

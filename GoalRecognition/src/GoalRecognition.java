@@ -26,9 +26,7 @@ public class GoalRecognition {
 	public static HashSet<Predicate> UA_Facts = new HashSet<Predicate>();
 	public static HashSet<Predicate> ST_Facts = new HashSet<Predicate>();
 
-	public static void main(String[] args) {
 
-	}
 
 	public static HashMap<ComplexCondition, Double> recognizeGoals(ArrayList<GroundAction> observations,
 			String domainFile, HashSet<String> problemFiles) throws Exception {
@@ -150,11 +148,16 @@ public class GoalRecognition {
 			LGG_new lgg = candidateGoalsPlusLMs.get(entry.getKey());
 
 			double sumCompletionOfSubGoals = 0;
+			
+			//System.out.println("Candidate Goal: " + entry.getKey());
+
 
 			for (Condition subGoal : (Collection<Condition>) (entry.getKey().sons)) {
+				
 
 				MultiValuedMap<Integer, Node_new> LMsOfSubGoal = new ArrayListValuedHashMap<>();
-			
+				
+				
 
 				lgg.getAllPredecessors(lgg.getNodeFromCond(subGoal), LMsOfSubGoal);
 
@@ -172,6 +175,8 @@ public class GoalRecognition {
 						subgoalAchieved = true;
 					}
 					
+					//System.out.println("SUBGOAL:"+c);
+					
 					for (Entry<Integer, Node_new> n : LMsOfSubGoal.entries()) {
 
 						if (n.getValue().getNode().equals(c)) {
@@ -184,7 +189,11 @@ public class GoalRecognition {
 					}
 				}
 
-
+//				System.out.println("LMS OF SUBGOAL:");
+//
+//				for (Entry<Integer, Node_new> n : LMsOfSubGoal.entries()) {
+//					System.out.println(n.getKey()+"---"+n.getValue().getNode());
+//				}
 				
 				double numerator = 0;
 				
@@ -192,7 +201,8 @@ public class GoalRecognition {
 				allLMSets.addAll(LMsOfSubGoal.keys());
 				allLMSets.add(0);
 				
-				
+//				System.out.println("ACHIEVED LM SETS:");
+//				System.out.println(achievedLMSets);
 				
 				for(org.apache.commons.collections4.MultiSet.Entry<Integer> LMSetEntry : allLMSets.entrySet()) {
 					for(org.apache.commons.collections4.MultiSet.Entry<Integer> achievedLMSetEntry : achievedLMSets.entrySet()) {
