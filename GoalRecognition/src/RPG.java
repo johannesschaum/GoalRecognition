@@ -93,7 +93,7 @@ public class RPG {
             if (current.satisfy(goal)) {
                 goal_reached = true;
                 this.goal_reached_at = levels;
-                System.out.println("Goal reached at level "+levels);
+               // System.out.println("Goal reached at level "+levels);
                 break;//goal reached!
                 
             } else {
@@ -140,7 +140,7 @@ public class RPG {
         this.setFixPoint(current.clone());
         //System.out.println(current);
         this.goal_reached = true;
-        System.out.println("Graphplan Building Time:" + (System.currentTimeMillis() - start));
+        //System.out.println("Graphplan Building Time:" + (System.currentTimeMillis() - start));
         //System.out.println("Spezz Time:" + (spezzTime));
         //System.out.println("NumbersOfLevel" + (levels));
         long start2 = System.currentTimeMillis();

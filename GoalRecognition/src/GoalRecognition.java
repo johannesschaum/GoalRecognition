@@ -149,7 +149,8 @@ public class GoalRecognition {
 
 			double sumCompletionOfSubGoals = 0;
 			
-			//System.out.println("Candidate Goal: " + entry.getKey());
+			System.out.println("Candidate Goal: " + entry.getKey());
+			
 
 
 			for (Condition subGoal : (Collection<Condition>) (entry.getKey().sons)) {
@@ -217,7 +218,7 @@ public class GoalRecognition {
 
 
 				sumCompletionOfSubGoals += (numerator / denominator);
-				System.out.println(subGoal+": "+numerator + " out of " + denominator + "-----------");
+				System.out.println(subGoal+": "+numerator + " out of " + denominator );
 
 			}
 
@@ -227,6 +228,7 @@ public class GoalRecognition {
 			double h_gc = sumCompletionOfSubGoals / entry.getKey().sons.size();
 
 			recognizedGoals.put(entry.getKey(), h_gc);
+			System.out.println("-----------");
 
 		}
 
